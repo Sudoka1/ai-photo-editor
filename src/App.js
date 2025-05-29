@@ -13,48 +13,77 @@ function App() {
     }
   };
 
- const handleSubmit = async () => {
-  if (!image) return;
-  setLoading(true);
+  const handleSubmit = async () => {
+    if (!image) return;
+    setLoading(true);
 
-  try {
-    const response = await axios.post(
-      "https://api-inference.huggingface.co/models/Xenova/colorize",
-      image,
-      {
-        headers: {
-          Authorization: "Bearer hf_ezRAuPZGlfHriuyKDEMOCKKEY123", // Можно заменить на свой токен
-          "Content-Type": "application/octet-stream",
-        },
-        responseType: "blob",
-      }
-    );
+    const formData = new FormData();
+    formData.append("image_file", image);
+    formData.append("size", "auto");
 
-    const imageBlob = new Blob([response.data], { type: "image/jpeg" });
-    const imageUrl = URL.createObjectURL(imageBlob);
-    setResultUrl(imageUrl);
-  } catch (err) {
-    alert("Ошибка при отправке изображения!");
-    console.error(err);
-  }
+    try {
+      const response = await axios.post(
+        "https://api.remove.bg/v1.0/removebg",
+        formData,
+        {
+          headers: {
+            "X-Api-Key": "TWfXCcCNkidr3KBucReGSu87", // Replace with your actual API key
+          },
+          responseType: "blob",
+        }
+      );
 
-  setLoading(false);
-};
+      const resultImage = new Blob([response.data], { type: "image/png" });
+      const imageUrl = URL.createObjectURL(resultImage);
+      setResultUrl(imageUrl);
+    } catch (err) {
+      alert("Image upload failed!\n" + (err.response?.data?.errors?.[0]?.title || err.message));
+      console.error("Upload error:", err.response?.data || err);
+    }
+
+    setLoading(false);
+  };
+
+  const handleDownload = () => {
+    const link = document.createElement("a");
+    link.href = resultUrl;
+    link.download = "edited-photo.png";
+    link.click();
+  };
 
   return (
-    <div style={{ textAlign: "center", padding: "50px" }}>
+    <div style={{ textAlign: "center", padding: "50px", fontFamily: "Arial" }}>
       <h1>AI Photo Editor</h1>
+
       <input type="file" accept="image/*" onChange={handleUpload} />
       <br />
-      <button onClick={handleSubmit} disabled={loading} style={{ marginTop: "10px" }}>
-        {loading ? "Обработка..." : "Применить AI"}
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        style={{ marginTop: "10px", padding: "8px 20px", cursor: "pointer" }}
+      >
+        {loading ? "Processing..." : "Apply AI"}
       </button>
+
       <div style={{ marginTop: "30px" }}>
-        {image && <img src={URL.createObjectURL(image)} alt="Original" width="200" />}
+        {image && (
+          <>
+            <h3>Original Image:</h3>
+            <img src={URL.createObjectURL(image)} alt="Original" width="250" />
+          </>
+        )}
+
         {resultUrl && (
           <>
-            <h3>Результат:</h3>
-            <img src={resultUrl} alt="Result" width="200" />
+            <h3>Result Image:</h3>
+            <img src={resultUrl} alt="Result" width="250" />
+            <br />
+            <button
+              onClick={handleDownload}
+              style={{ marginTop: "10px", padding: "8px 20px", cursor: "pointer" }}
+            >
+              Download Result
+            </button>
           </>
         )}
       </div>
